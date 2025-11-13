@@ -148,6 +148,7 @@ const AlertWizard = () => {
           recurrence: recurrenceOption,
           postExecution: postExecutionValue,
           startDateTime: startDateTimeForForm,
+          AlertComment: alert.RawAlert.AlertComment || "",
         };
 
         // Parse Parameters field if it exists and is a string
@@ -194,7 +195,7 @@ const AlertWizard = () => {
           if (condition.Property.value === "String") {
             // For String type, we need to set both the nested value and the direct value
             formattedCondition.Input = {
-              value: condition.Input.value,
+              value: condition.Input?.value ?? "",
             };
           } else {
             // For List type, use the full Input object
@@ -211,6 +212,7 @@ const AlertWizard = () => {
           Actions: alert.RawAlert.Actions,
           conditions: formattedConditions,
           logbook: foundLogbook,
+          AlertComment: alert.RawAlert.AlertComment || "",
         };
 
         formControl.reset(resetData);
@@ -242,6 +244,31 @@ const AlertWizard = () => {
   const commandValue = useWatch({ control: formControl.control, name: "command" });
   const logbookWatcher = useWatch({ control: formControl.control, name: "logbook" });
   const propertyWatcher = useWatch({ control: formControl.control, name: "conditions" });
+
+  // Clear input value when operator type changes between textField and autocomplete
+  useEffect(() => {
+    if (propertyWatcher) {
+      propertyWatcher.forEach((condition, index) => {
+        if (condition?.Operator?.value) {
+          const isInOrNotIn = condition.Operator.value === "in" || condition.Operator.value === "notIn";
+          const isStringProperty = condition?.Property?.value === "String";
+
+          // Clear input when switching to in/notIn (textField → autocomplete)
+          if (isInOrNotIn) {
+            formControl.setValue(`conditions.${index}.Input`, [], { shouldValidate: false });
+          }
+          // Clear input when switching from in/notIn (autocomplete → textField)
+          else {
+            if (isStringProperty) {
+              formControl.setValue(`conditions.${index}.Input`, { value: '' }, { shouldValidate: false });
+            } else {
+              formControl.setValue(`conditions.${index}.Input`, '', { shouldValidate: false });
+            }
+          }
+        }
+      });
+    }
+  }, [propertyWatcher]);
 
   useEffect(() => {
     formControl.reset();
@@ -344,12 +371,13 @@ const AlertWizard = () => {
       DesiredStartTime: values.startDateTime ? values.startDateTime.toString() : null,
       Recurrence: values.recurrence,
       PostExecution: values.postExecution,
+      AlertComment: values.AlertComment,
     };
     apiRequest.mutate({ url: "/api/AddScheduledItem?hidden=true", data: postObject });
   };
 
   const handleAddCondition = () => {
-    setAddedEvent([...addedEvent, { id: addedEvent.length + 1 }]);
+    setAddedEvent([...addedEvent, { id: addedEvent?.length + 1 }]);
   };
 
   const handleRemoveCondition = (id) => {
@@ -565,35 +593,80 @@ const AlertWizard = () => {
                                 />
                               </Grid>
                               <Grid size={3}>
+                                {/* Show textField for String properties when NOT using in/notIn operators */}
                                 <CippFormCondition
                                   field={`conditions.${event.id}.Property`}
                                   formControl={formControl}
                                   compareType="contains"
                                   compareValue={"String"}
                                 >
+                                  <CippFormCondition
+                                    field={`conditions.${event.id}.Operator`}
+                                    formControl={formControl}
+                                    compareType="isNotOneOf"
+                                    compareValue={[{ value: "in", label: "In" }, { value: "notIn", label: "Not In" }]}
+                                  >
+                                    <CippFormComponent
+                                      type="textField"
+                                      name={`conditions.${event.id}.Input.value`}
+                                      formControl={formControl}
+                                      label="Input"
+                                    />
+                                  </CippFormCondition>
+                                </CippFormCondition>
+
+                                {/* Show autocomplete with creatable for in/notIn operators (any property type) */}
+                                <CippFormCondition
+                                  field={`conditions.${event.id}.Operator`}
+                                  formControl={formControl}
+                                  compareType="isOneOf"
+                                  compareValue={[{ value: "in", label: "In" }, { value: "notIn", label: "Not In" }]}
+                                >
                                   <CippFormComponent
-                                    type="textField"
-                                    name={`conditions.${event.id}.Input.value`}
+                                    type="autoComplete"
+                                    multiple={true}
+                                    name={`conditions.${event.id}.Input`}
                                     formControl={formControl}
                                     label="Input"
+                                    creatable={true}
+                                    options={
+                                      propertyWatcher?.[event.id]?.Property?.value?.startsWith("List:")
+                                        ? auditLogSchema[propertyWatcher?.[event.id]?.Property?.value]
+                                        : []
+                                    }
+                                    onCreateOption={(inputValue) => {
+                                      if (typeof inputValue === 'string') {
+                                        return { label: inputValue, value: inputValue };
+                                      }
+                                      return inputValue;
+                                    }}
                                   />
                                 </CippFormCondition>
+
+                                {/* Show autocomplete for List properties when NOT using in/notIn operators */}
                                 <CippFormCondition
                                   field={`conditions.${event.id}.Property`}
                                   formControl={formControl}
                                   compareType="contains"
                                   compareValue="List:"
                                 >
-                                  <CippFormComponent
-                                    type="autoComplete"
-                                    multiple={propertyWatcher?.[event.id]?.Property?.multi ?? false}
-                                    name={`conditions.${event.id}.Input`}
+                                  <CippFormCondition
+                                    field={`conditions.${event.id}.Operator`}
                                     formControl={formControl}
-                                    label="Input"
-                                    options={
-                                      auditLogSchema[propertyWatcher?.[event.id]?.Property?.value]
-                                    }
-                                  />
+                                    compareType="isNotOneOf"
+                                    compareValue={[{ value: "in", label: "In" }, { value: "notIn", label: "Not In" }]}
+                                  >
+                                    <CippFormComponent
+                                      type="autoComplete"
+                                      multiple={propertyWatcher?.[event.id]?.Property?.multi ?? false}
+                                      name={`conditions.${event.id}.Input`}
+                                      formControl={formControl}
+                                      label="Input"
+                                      options={
+                                        auditLogSchema[propertyWatcher?.[event.id]?.Property?.value]
+                                      }
+                                    />
+                                  </CippFormCondition>
                                 </CippFormCondition>
                               </Grid>
                               <Grid size={1}>
@@ -621,6 +694,17 @@ const AlertWizard = () => {
                               multiple={true}
                               creatable={false}
                               options={actionsToTake}
+                            />
+                          </Grid>
+                          <Grid size={12} sx={{ mt: 2 }}>
+                            <CippFormComponent
+                              type="textField"
+                              name="AlertComment"
+                              label="Alert Comment"
+                              formControl={formControl}
+                              multiline={true}
+                              rows={3}
+                              placeholder="Add documentation, FAQ links, or instructions for when this alert triggers..."
                             />
                           </Grid>
                           <Grid size={12} sx={{ mt: 2 }}>
@@ -755,6 +839,17 @@ const AlertWizard = () => {
                                 multiple={true}
                                 creatable={false}
                                 options={postExecutionOptions}
+                              />
+                            </Grid>
+                            <Grid size={12}>
+                              <CippFormComponent
+                                type="textField"
+                                name="AlertComment"
+                                label="Alert Comment"
+                                formControl={formControl}
+                                multiline={true}
+                                rows={3}
+                                placeholder="Add documentation, FAQ links, or instructions for when this alert triggers..."
                               />
                             </Grid>
                             <Grid size={12}>
