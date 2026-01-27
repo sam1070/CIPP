@@ -18,15 +18,15 @@ import { Grid } from "@mui/system";
 import { ArrowLeftIcon } from "@mui/x-date-pickers";
 import { useRouter } from "next/router";
 import { useForm, useFormState, useWatch } from "react-hook-form";
-import CippFormComponent from "/src/components/CippComponents/CippFormComponent";
-import { CippFormTenantSelector } from "/src/components/CippComponents/CippFormTenantSelector";
+import CippFormComponent from "../../../../components/CippComponents/CippFormComponent";
+import { CippFormTenantSelector } from "../../../../components/CippComponents/CippFormTenantSelector";
 import CippButtonCard from "../../../../components/CippCards/CippButtonCard";
-import alertList from "/src/data/alerts.json";
-import auditLogTemplates from "/src/data/AuditLogTemplates";
-import auditLogSchema from "/src/data/AuditLogSchema.json";
+import alertList from "../../../../data/alerts.json";
+import auditLogTemplates from "../../../../data/AuditLogTemplates";
+import auditLogSchema from "../../../../data/AuditLogSchema.json";
 import { Save, Delete } from "@mui/icons-material";
 
-import { Layout as DashboardLayout } from "/src/layouts/index.js"; // Dashboard layout
+import { Layout as DashboardLayout } from "../../../../layouts/index.js"; // Dashboard layout
 import { CippApiResults } from "../../../../components/CippComponents/CippApiResults";
 import { ApiGetCall, ApiPostCall } from "../../../../api/ApiCall";
 import { PlusIcon } from "@heroicons/react/24/outline";
@@ -958,6 +958,16 @@ const AlertWizard = () => {
                                     name={commandValue.value?.inputName}
                                     formControl={formControl}
                                     label={commandValue.value?.inputLabel}
+                                    required={commandValue.value?.required || false}
+                                    {...(commandValue.value?.inputType === 'autoComplete'
+                                      ? {
+                                          options: commandValue.value?.options,
+                                          creatable: commandValue.value?.creatable || true,
+                                          multiple: commandValue.value?.multiple || true,
+                                        }
+                                      : {}
+                                      )
+                                    }
                                   />
                                 )}
                               {commandValue?.value?.multipleInput &&
@@ -974,6 +984,16 @@ const AlertWizard = () => {
                                         name={input.inputName}
                                         formControl={formControl}
                                         label={input.inputLabel}
+                                        required={input.required || false}
+                                        {...(input.inputType === 'autoComplete'
+                                          ? {
+                                              options: input.options,
+                                              creatable: input.creatable ?? true,
+                                              multiple: input.multiple ?? true,
+                                            }
+                                          : {}
+                                          )
+                                        }
                                       />
                                     </Grid>
                                   </Grid>
