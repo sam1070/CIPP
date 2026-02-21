@@ -20,9 +20,9 @@ import {
   TimelineDot,
   TimelineOppositeContent,
 } from "@mui/lab";
-import { Layout as DashboardLayout } from "/src/layouts/index.js";
-import { HeaderedTabbedLayout } from "/src/layouts/HeaderedTabbedLayout";
-import { ApiGetCall } from "/src/api/ApiCall";
+import { Layout as DashboardLayout } from "../../../layouts/index.js";
+import { HeaderedTabbedLayout } from "../../../layouts/HeaderedTabbedLayout";
+import { ApiGetCall } from "../../../api/ApiCall";
 import { useRouter } from "next/router";
 import {
   Policy,
@@ -40,7 +40,9 @@ const Page = () => {
   const router = useRouter();
   const { templateId } = router.query;
   const [daysToLoad, setDaysToLoad] = useState(5);
-  const tenant = useSettings().currentTenant;
+  const userSettings = useSettings();
+  // Prioritize URL query parameter, then fall back to settings
+  const tenant = router.query.tenantFilter || userSettings.currentTenant;
   const [expandedMessages, setExpandedMessages] = useState(new Set());
 
   // Toggle message expansion

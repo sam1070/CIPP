@@ -1,25 +1,25 @@
 import { Box, Button, Container, Stack, Typography, SvgIcon, Skeleton } from "@mui/material";
 import { Grid } from "@mui/system";
-import { Layout as DashboardLayout } from "/src/layouts/index.js";
+import { Layout as DashboardLayout } from "../../../../layouts/index.js";
 import { useForm, useWatch } from "react-hook-form";
 import { useRouter } from "next/router";
 import { Add, SaveRounded } from "@mui/icons-material";
 import { useEffect, useState, useCallback, useMemo, useRef, lazy, Suspense } from "react";
-import standards from "/src/data/standards";
-import CippStandardAccordion from "../../../components/CippStandards/CippStandardAccordion";
+import standards from "../../../../data/standards";
+import CippStandardAccordion from "../../../../components/CippStandards/CippStandardAccordion";
 // Lazy load the dialog to improve initial page load performance
-const CippStandardDialog = lazy(() =>
-  import("../../../components/CippStandards/CippStandardDialog")
+const CippStandardDialog = lazy(
+  () => import("../../../../components/CippStandards/CippStandardDialog"),
 );
-import CippStandardsSideBar from "../../../components/CippStandards/CippStandardsSideBar";
+import CippStandardsSideBar from "../../../../components/CippStandards/CippStandardsSideBar";
 import { ArrowLeftIcon } from "@mui/x-date-pickers";
-import { useDialog } from "../../../hooks/use-dialog";
-import { ApiGetCall } from "../../../api/ApiCall";
+import { useDialog } from "../../../../hooks/use-dialog";
+import { ApiGetCall } from "../../../../api/ApiCall";
 import _ from "lodash";
-import { createDriftManagementActions } from "../manage/driftManagementActions";
-import { ActionsMenu } from "/src/components/actions-menu";
-import { useSettings } from "/src/hooks/use-settings";
-import { CippHead } from "../../../components/CippComponents/CippHead";
+import { createDriftManagementActions } from "../../manage/driftManagementActions";
+import { ActionsMenu } from "../../../../components/actions-menu";
+import { useSettings } from "../../../../hooks/use-settings";
+import { CippHead } from "../../../../components/CippComponents/CippHead";
 
 const Page = () => {
   const router = useRouter();
@@ -62,7 +62,7 @@ const Page = () => {
   useEffect(() => {
     const stepsStatus = {
       step1: !!_.get(watchForm, "templateName"),
-      step2: isDriftMode || _.get(watchForm, "tenantFilter", []).length > 0, // Skip tenant requirement for drift mode
+      step2: _.get(watchForm, "tenantFilter", []).length > 0,
       step3: Object.keys(selectedStandards).length > 0,
       step4:
         _.get(watchForm, "standards") &&
@@ -84,7 +84,7 @@ const Page = () => {
     (url) => {
       if (hasUnsavedChanges) {
         const confirmLeave = window.confirm(
-          "You have unsaved changes. Are you sure you want to leave this page?"
+          "You have unsaved changes. Are you sure you want to leave this page?",
         );
         if (!confirmLeave) {
           router.events.emit("routeChangeError");
@@ -92,7 +92,7 @@ const Page = () => {
         }
       }
     },
-    [hasUnsavedChanges, router]
+    [hasUnsavedChanges, router],
   );
 
   // Handle browser back/forward navigation or tab close
@@ -144,7 +144,7 @@ const Page = () => {
       Object.keys(apiData.standards).forEach((key) => {
         if (Array.isArray(apiData.standards[key])) {
           apiData.standards[key] = apiData.standards[key].filter(
-            (value) => value !== null && value !== undefined
+            (value) => value !== null && value !== undefined,
           );
         }
       });
@@ -207,7 +207,7 @@ const Page = () => {
         standard.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
         standard.helpText.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (standard.tag &&
-          standard.tag.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase())))
+          standard.tag.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()))),
     );
 
   const handleToggleStandard = (standardName) => {
@@ -269,10 +269,13 @@ const Page = () => {
 
   // Determine if save button should be disabled based on configuration
   const isSaveDisabled = isDriftMode
-    ? currentStep < 3 || hasDriftConflict // For drift mode, only require steps 1, 3, and 4 (skip tenant requirement) and no drift conflicts
+    ? !_.get(watchForm, "tenantFilter") ||
+      !_.get(watchForm, "tenantFilter").length ||
+      currentStep < 4 ||
+      hasDriftConflict // For drift mode, require all steps and no drift conflicts
     : !_.get(watchForm, "tenantFilter") ||
       !_.get(watchForm, "tenantFilter").length ||
-      currentStep < 3;
+      currentStep < 4;
 
   // Create drift management actions (excluding refresh)
   const driftActions = useMemo(() => {
@@ -300,7 +303,7 @@ const Page = () => {
   const handleSafeNavigation = (url) => {
     if (hasUnsavedChanges) {
       const confirmLeave = window.confirm(
-        "You have unsaved changes. Are you sure you want to leave this page?"
+        "You have unsaved changes. Are you sure you want to leave this page?",
       );
       if (confirmLeave) {
         router.push(url);
@@ -311,7 +314,7 @@ const Page = () => {
   };
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
+    <Box sx={{ flexGrow: 1, px: 3, maxWidth: "1900px" }}>
       <CippHead
         title={
           editMode
@@ -319,120 +322,119 @@ const Page = () => {
               ? "Edit Drift Template"
               : "Edit Standards Template"
             : isDriftMode
-            ? "Add Drift Template"
-            : "Add Standards Template"
+              ? "Add Drift Template"
+              : "Add Standards Template"
         }
       />
-      <Container maxWidth={"xl"}>
-        <Stack spacing={2}>
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="center"
-            spacing={4}
-            sx={{ mb: 3 }}
-          >
-            <Typography variant="h4">
-              {editMode
-                ? isDriftMode
-                  ? "Edit Drift Template"
-                  : "Edit Standards Template"
-                : isDriftMode
+
+      <Stack spacing={2}>
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+          spacing={4}
+          sx={{ mb: 3 }}
+        >
+          <Typography variant="h4">
+            {editMode
+              ? isDriftMode
+                ? "Edit Drift Template"
+                : "Edit Standards Template"
+              : isDriftMode
                 ? "Add Drift Template"
                 : "Add Standards Template"}
-            </Typography>
-            <Stack direction="row" spacing={2}>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleSave}
-                startIcon={<SaveRounded />}
-                disabled={isSaveDisabled}
-              >
-                Save Template
-              </Button>
-              <Button
-                variant="outlined"
-                color="primary"
-                onClick={handleOpenDialog}
-                startIcon={<Add />}
-              >
-                Add Standard to Template
-              </Button>
-              {/* Drift management actions */}
-              {driftActions.length > 0 && (
-                <ActionsMenu
-                  actions={driftActions}
-                  data={{ templateId: router.query.id, tenantFilter: currentTenant }}
-                />
-              )}
-            </Stack>
+          </Typography>
+          <Stack direction="row" spacing={2}>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleSave}
+              startIcon={<SaveRounded />}
+              disabled={isSaveDisabled}
+            >
+              Save Template
+            </Button>
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={handleOpenDialog}
+              startIcon={<Add />}
+            >
+              Add Standard to Template
+            </Button>
+            {/* Drift management actions */}
+            {driftActions.length > 0 && (
+              <ActionsMenu
+                actions={driftActions}
+                data={{ templateId: router.query.id, tenantFilter: currentTenant }}
+              />
+            )}
           </Stack>
-
-          <Box sx={{ flexGrow: 1, height: "calc(100vh - 270px)", overflow: "hidden" }}>
-            <Grid container spacing={3} sx={{ height: "100%" }}>
-              {/* Left Column for Accordions */}
-              <Grid size={{ xs: 12, lg: 4 }} sx={{ height: "100%", overflow: "auto", pr: 1 }}>
-                <CippStandardsSideBar
-                  title={isDriftMode ? "Drift Template Setup" : "Standard Template Setup"}
-                  subtitle="Follow the steps to configure the Standard"
-                  createDialog={createDialog}
-                  steps={steps}
-                  actions={actions}
-                  formControl={formControl}
-                  selectedStandards={selectedStandards}
-                  edit={editMode}
-                  updatedAt={updatedAt}
-                  isDriftMode={isDriftMode}
-                  onDriftConflictChange={setHasDriftConflict}
-                  onSaveSuccess={() => {
-                    // Reset unsaved changes flag
-                    setHasUnsavedChanges(false);
-                    // Update reference for future change detection
-                    initialStandardsRef.current = { ...selectedStandards };
-                  }}
-                />
-              </Grid>
-              <Grid size={{ xs: 12, lg: 8 }} sx={{ height: "100%", overflow: "auto", pr: 1 }}>
-                <Stack spacing={2}>
-                  {/* Show accordions based on selectedStandards (which is populated by API when editing) */}
-                  {existingTemplate.isLoading ? (
-                    <Skeleton variant="rectangular" height="700px" />
-                  ) : (
-                    <CippStandardAccordion
-                      standards={standards}
-                      selectedStandards={selectedStandards} // Render only the relevant standards
-                      expanded={expanded}
-                      handleAccordionToggle={handleAccordionToggle}
-                      handleRemoveStandard={handleRemoveStandard}
-                      handleAddMultipleStandard={handleAddMultipleStandard} // Pass the handler for adding multiple
-                      formControl={formControl}
-                      editMode={editMode}
-                      isDriftMode={isDriftMode}
-                    />
-                  )}
-                </Stack>
-              </Grid>
-            </Grid>
-          </Box>
         </Stack>
 
-        {/* Only render the dialog when it's needed */}
-        {dialogOpen && (
-          <Suspense fallback={<div />}>
-            <CippStandardDialog
-              dialogOpen={dialogOpen}
-              handleCloseDialog={handleCloseDialog}
-              setSearchQuery={setSearchQuery}
-              categories={categories}
-              filterStandards={filterStandards}
-              selectedStandards={selectedStandards}
-              handleToggleSingleStandard={handleToggleStandard} // Single standard toggle handler
-              handleAddMultipleStandard={handleAddMultipleStandard} // Pass the handler for adding multiple
-            />
-          </Suspense>
-        )}
-      </Container>
+        <Box sx={{ flexGrow: 1, height: "calc(100vh - 270px)", overflow: "hidden" }}>
+          <Grid container spacing={3} sx={{ height: "100%" }}>
+            {/* Left Column for Accordions */}
+            <Grid size={{ xs: 12, lg: 4 }} sx={{ height: "100%", overflow: "auto", pr: 1 }}>
+              <CippStandardsSideBar
+                title={isDriftMode ? "Drift Template Setup" : "Standard Template Setup"}
+                subtitle="Follow the steps to configure the Standard"
+                createDialog={createDialog}
+                steps={steps}
+                actions={actions}
+                formControl={formControl}
+                selectedStandards={selectedStandards}
+                edit={editMode}
+                updatedAt={updatedAt}
+                isDriftMode={isDriftMode}
+                onDriftConflictChange={setHasDriftConflict}
+                onSaveSuccess={() => {
+                  // Reset unsaved changes flag
+                  setHasUnsavedChanges(false);
+                  // Update reference for future change detection
+                  initialStandardsRef.current = { ...selectedStandards };
+                }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, lg: 8 }} sx={{ height: "100%", overflow: "auto", pr: 1 }}>
+              <Stack spacing={2}>
+                {/* Show accordions based on selectedStandards (which is populated by API when editing) */}
+                {existingTemplate.isLoading ? (
+                  <Skeleton variant="rectangular" height="700px" />
+                ) : (
+                  <CippStandardAccordion
+                    standards={standards}
+                    selectedStandards={selectedStandards} // Render only the relevant standards
+                    expanded={expanded}
+                    handleAccordionToggle={handleAccordionToggle}
+                    handleRemoveStandard={handleRemoveStandard}
+                    handleAddMultipleStandard={handleAddMultipleStandard} // Pass the handler for adding multiple
+                    formControl={formControl}
+                    editMode={editMode}
+                    isDriftMode={isDriftMode}
+                  />
+                )}
+              </Stack>
+            </Grid>
+          </Grid>
+        </Box>
+      </Stack>
+
+      {/* Only render the dialog when it's needed */}
+      {dialogOpen && (
+        <Suspense fallback={<div />}>
+          <CippStandardDialog
+            dialogOpen={dialogOpen}
+            handleCloseDialog={handleCloseDialog}
+            setSearchQuery={setSearchQuery}
+            categories={categories}
+            filterStandards={filterStandards}
+            selectedStandards={selectedStandards}
+            handleToggleSingleStandard={handleToggleStandard} // Single standard toggle handler
+            handleAddMultipleStandard={handleAddMultipleStandard} // Pass the handler for adding multiple
+          />
+        </Suspense>
+      )}
     </Box>
   );
 };
