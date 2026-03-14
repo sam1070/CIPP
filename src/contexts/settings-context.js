@@ -81,6 +81,8 @@ const initialSettings = {
   persistFilters: false,
   lastUsedFilters: {},
   breadcrumbMode: "hierarchical",
+  bookmarkSidebar: true,
+  bookmarkPopover: false,
 };
 
 const initialState = {
@@ -122,6 +124,12 @@ export const SettingsProvider = (props) => {
     }
   }, []);
 
+  useEffect(() => {
+    if (state.isInitialized) {
+      storeSettings(state);
+    }
+  }, [state]);
+
   const handleReset = useCallback(() => {
     deleteSettings();
     setState((prevState) => ({
@@ -132,14 +140,17 @@ export const SettingsProvider = (props) => {
 
   const handleUpdate = useCallback((settings) => {
     setState((prevState) => {
-      storeSettings({
-        ...prevState,
-        ...settings,
-      });
+      // Filter out null and undefined values to prevent resetting settings
+      const filteredSettings = Object.entries(settings).reduce((acc, [key, value]) => {
+        if (value !== null && value !== undefined) {
+          acc[key] = value;
+        }
+        return acc;
+      }, {});
 
       return {
         ...prevState,
-        ...settings,
+        ...filteredSettings,
       };
     });
   }, []);
@@ -161,17 +172,13 @@ export const SettingsProvider = (props) => {
         handleUpdate,
         isCustom,
         setLastUsedFilter: (page, filter) => {
-          setState((prevState) => {
-            const updated = {
-              ...prevState,
-              lastUsedFilters: {
-                ...prevState.lastUsedFilters,
-                [page]: filter,
-              },
-            };
-            storeSettings(updated);
-            return updated;
-          });
+          setState((prevState) => ({
+            ...prevState,
+            lastUsedFilters: {
+              ...prevState.lastUsedFilters,
+              [page]: filter,
+            },
+          }));
         },
       }}
     >
