@@ -1,5 +1,5 @@
-import { TabbedLayout } from "/src/layouts/TabbedLayout";
-import { Layout as DashboardLayout } from "/src/layouts/index.js";
+import { TabbedLayout } from "../../../layouts/TabbedLayout";
+import { Layout as DashboardLayout } from "../../../layouts/index.js";
 import tabOptions from "./tabOptions";
 import { Container } from "@mui/system";
 import { Grid } from "@mui/system";
@@ -16,21 +16,19 @@ import CippPermissionCheck from "../../../components/CippSettings/CippPermission
 import { Button } from "@mui/material";
 import { useEffect, useState } from "react";
 import CippButtonCard from "../../../components/CippCards/CippButtonCard";
-import { WizardSteps } from "/src/components/CippWizard/wizard-steps";
+import { WizardSteps } from "../../../components/CippWizard/wizard-steps";
 import Link from "next/link";
 import { CippHead } from "../../../components/CippComponents/CippHead";
+import { usePermissions } from "../../../hooks/use-permissions";
 
 const Page = () => {
   const [createDefaults, setCreateDefaults] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
+  const { checkRoles } = usePermissions();
+  const canViewGdapChecks = checkRoles(["CIPP.AppSettings.Read"]);
 
   const relationships = ApiGetCallWithPagination({
-    url: "/api/ListGraphRequest",
-    data: {
-      Endpoint: "tenantRelationships/delegatedAdminRelationships",
-      tenantFilter: "",
-      $top: 300,
-    },
+    url: "/api/ListGDAPRelationships",
     queryKey: "ListGDAPRelationships",
   });
 
@@ -167,46 +165,50 @@ const Page = () => {
         <Grid size={12}>
           <Button
             LinkComponent={Link}
-            href="/tenant/gdap-management/invites/add"
+            href="/onboardingv2?selectedOption=AddTenant"
             startIcon={<Add />}
             variant="contained"
           >
             Add a Tenant
           </Button>
         </Grid>
-        <Grid size={{ xs: 12, sm: 6 }}>
-          <CippButtonCard
-            title="GDAP Setup"
-            cardSx={{ display: "flex", flexDirection: "column", height: "100%", width: "100%" }}
-          >
-            <WizardSteps
-              activeStep={activeStep}
-              orientation="vertical"
-              steps={[
-                {
-                  title: "Map your Admin Roles",
-                  description:
-                    "Use CIPP to map Admin Roles to Security Groups in your partner tenant.",
-                },
-                {
-                  title: "Create Role Templates",
-                  description: "Create Templates for your Role Mappings.",
-                },
-                {
-                  title: "Create Invites",
-                  description: "Create invites based on your Role Templates.",
-                },
-                {
-                  title: "Setup Complete",
-                  description: "You're ready to start adding your tenants using CIPP.",
-                },
-              ]}
-            />
-          </CippButtonCard>
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6 }}>
-          <CippPermissionCheck type="GDAP" />
-        </Grid>
+        {canViewGdapChecks && (
+          <>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <CippButtonCard
+                title="GDAP Setup"
+                cardSx={{ display: "flex", flexDirection: "column", height: "100%", width: "100%" }}
+              >
+                <WizardSteps
+                  activeStep={activeStep}
+                  orientation="vertical"
+                  steps={[
+                    {
+                      title: "Map your Admin Roles",
+                      description:
+                        "Use CIPP to map Admin Roles to Security Groups in your partner tenant.",
+                    },
+                    {
+                      title: "Create Role Templates",
+                      description: "Create Templates for your Role Mappings.",
+                    },
+                    {
+                      title: "Create Invites",
+                      description: "Create invites based on your Role Templates.",
+                    },
+                    {
+                      title: "Setup Complete",
+                      description: "You're ready to start adding your tenants using CIPP.",
+                    },
+                  ]}
+                />
+              </CippButtonCard>
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <CippPermissionCheck type="GDAP" />
+            </Grid>
+          </>
+        )}
       </Grid>
     </Container>
   );
